@@ -171,7 +171,9 @@ Here is SVM setup:
 Here is confusion matrix. It is not perfect, but hopfully it will do the trick
 ![CM](CM.png)
 
-![demo-1](https://user-images.githubusercontent.com/20687560/28748231-46b5b912-7467-11e7-8778-3095172b7b19.png)
+Eventially it didn't do the trcik. So it turns out that I was building histogram for normals only with positive values range=(0,255) so I change it to [-100,100] and it worked.
+
+![CM2](CM2.png)
 
 ### Pick and Place Setup
 
