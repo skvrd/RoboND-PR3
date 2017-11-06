@@ -180,7 +180,16 @@ Eventially it didn't do the trcik. So it turns out that I was building histogram
 #### 1. For all three tabletop setups (`test*.world`), perform object recognition, then read in respective pick list (`pick_list_*.yaml`). Next construct the messages that would comprise a valid `PickPlace` request output them to `.yaml` format.
 
 Here is what I got as a result:
+![CM2](o1.png)
+![CM2](o22.png)
+![CM2](o3.png)
 
+All yaml files are in the output directory
+
+
+###Spend some time at the end to discuss your code, what techniques you used, what worked and why, where the implementation might fail and how you might improve it if you were going to pursue this project further.
+
+It seems that SVM still can be better trained. I need to spend some more time playing with parameters and features.
 
 
 
