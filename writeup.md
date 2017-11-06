@@ -171,7 +171,7 @@ Here is SVM setup:
 Here is confusion matrix. It is not perfect, but hopfully it will do the trick
 ![CM](CM.png)
 
-Eventially it didn't do the trcik. So it turns out that I was building histogram for normals only with positive values range=(0,255) so I change it to [-100,100] and it worked.
+Eventially it didn't do the trcik. So it turns out that I was building histogram for normals only with positive values range=(0,255) so I change it to [-100,100] and it worked even with 50 samples of each object.
 
 ![CM2](CM2.png)
 
@@ -179,10 +179,8 @@ Eventially it didn't do the trcik. So it turns out that I was building histogram
 
 #### 1. For all three tabletop setups (`test*.world`), perform object recognition, then read in respective pick list (`pick_list_*.yaml`). Next construct the messages that would comprise a valid `PickPlace` request output them to `.yaml` format.
 
-And here's another image! 
-![demo-2](https://user-images.githubusercontent.com/20687560/28748286-9f65680e-7468-11e7-83dc-f1a32380b89c.png)
+Here is what I got as a result:
 
-Spend some time at the end to discuss your code, what techniques you used, what worked and why, where the implementation might fail and how you might improve it if you were going to pursue this project further.  
 
 
 
