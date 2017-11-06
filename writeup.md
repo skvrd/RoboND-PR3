@@ -130,7 +130,46 @@ You're reading it!
 ```
 
 #### 2. Complete Exercise 3 Steps.  Features extracted and SVM trained.  Object recognition implemented.
-Here is an example of how to include an image in your writeup.
+* Extract features
+```
+    # Classify the clusters! (loop through each detected cluster one at a time)
+    detected_objects_labels = []
+    detected_objects = []
+    for index, pts_list in enumerate(cluster_indices):
+        # Grab the points for the cluster
+        pcl_cluster = cloud_filtered.extract(pts_list)
+        ros_cluster = pcl_to_ros(pcl_cluster)    
+        # Compute the associated feature vector
+        color_hists = compute_color_histograms(ros_cluster, using_hsv=True)
+        normals = get_normals(ros_cluster)
+        normal_hists = compute_normal_histograms(normals)
+        features = np.concatenate((color_hists, normal_hists))
+        # Make the prediction
+        prediction = clf.predict(scaler.transform(features.reshape(1,-1)))
+        label = encoder.inverse_transform(prediction)[0]
+        detected_objects_labels.append(label)
+        # Publish a label into RViz
+        label_pos = list(white_cloud[pts_list[0]])
+        label_pos[2] += .22
+        
+        object_markers_pub.publish(make_label(label,label_pos, index))
+
+        # Add the detected object to the list of detected objects.
+        do = DetectedObject()
+        do.label = label
+        do.cloud = ros_cluster
+        detected_objects.append(do)       
+
+```
+* Train SVM
+
+I took 1000 samples of each object.
+Here is SVM setup:
+```
+    clf = svm.SVC(kernel='linear', tol=1e-4)
+```
+Here is confusion matrix. It is not perfect, but hopfully it will do the trick
+![CM](CM.png)
 
 ![demo-1](https://user-images.githubusercontent.com/20687560/28748231-46b5b912-7467-11e7-8778-3095172b7b19.png)
 
