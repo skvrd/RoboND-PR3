@@ -1,1 +1,7 @@
 /pr2_robot/scripts/numpy/
+/pr2_robot/scripts/numpy-1.13.3.dist-info/
+/pr2_robot/scripts/rospy_message_converter/
+/pr2_robot/scripts/scikit_learn-0.19.0.dist-info/
+/pr2_robot/scripts/scipy/
+/pr2_robot/scripts/scipy-0.19.1.dist-info/
+/pr2_robot/scripts/sklearn/
