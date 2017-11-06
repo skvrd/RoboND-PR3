@@ -58,7 +58,7 @@ def pcl_callback(pcl_msg):
     # we start by creating a filter object: 
     outlier_filter = plc.make_statistical_outlier_filter()
     # Set the number of neighboring points to analyze for any given point
-    outlier_filter.set_mean_k(60)
+    outlier_filter.set_mean_k(6)
     # Set threshold scale factor
     x = 1
     # Any point with a mean distance larger than global (mean distance+x*std_dev) will be considered outlier
@@ -82,10 +82,11 @@ def pcl_callback(pcl_msg):
     # Assign axis and range to the passthrough filter object.
     filter_axis = 'z'
     passthrough.set_filter_field_name(filter_axis)
-    # Since robot is looking from top to bottom, it is not really captures staff under the table.
-    # So removing only small part under the table should be sufficient.
+    # Since robot is looking from top to bottom
+    # So removing only small part under the table should be ok
+    # As well as removing around the same amount from the top
     axis_min = 0.60
-    axis_max = 2
+    axis_max = 1.40
     passthrough.set_filter_limits (axis_min, axis_max)
     passthrough = passthrough.filter()    
 
@@ -97,14 +98,9 @@ def pcl_callback(pcl_msg):
     axis_min = -0.5
     axis_max = 0.5
     passthrough.set_filter_limits(axis_min, axis_max)
-    
+    # Finally use the filter function to obtain the resultant point cloud.
     cloud_filtered = passthrough.filter()
-    
 
-
-
-    # Finally use the filter function to obtain the resultant point cloud. 
-    cloud_filtered = passthrough.filter()
 
     # TODO: RANSAC Plane Segmentation
     # Create the segmentation object
@@ -122,22 +118,9 @@ def pcl_callback(pcl_msg):
 
     # Call the segment function to obtain set of inlier indices and model coefficients
     inliers, coefficients = seg.segment()
-    
-    # Extract inliers
-    cloud_filtered = cloud_filtered.extract(inliers, negative=True)
 
-    # There are still a lot of noice, let's try to remove it once again with k-means
-    # we start by creating a filter object: 
-    outlier_filter = cloud_filtered.make_statistical_outlier_filter()
-    # Set the number of neighboring points to analyze for any given point
-    outlier_filter.set_mean_k(60)
-    # Set threshold scale factor
-    x = 1
-    # Any point with a mean distance larger than global (mean distance+x*std_dev) will be considered outlier
-    outlier_filter.set_std_dev_mul_thresh(x)
-    # Finally call the filter function for magic
-    cloud_filtered = outlier_filter.filter()
     # TODO: Extract inliers and outliers
+    cloud_filtered = cloud_filtered.extract(inliers, negative=True)
 
     # TODO: Euclidean Clustering
 
@@ -150,8 +133,8 @@ def pcl_callback(pcl_msg):
     # as well as minimum and maximum cluster size (in points)
 
     ec.set_ClusterTolerance(0.01)
-    ec.set_MinClusterSize(50)
-    ec.set_MaxClusterSize(8000)
+    ec.set_MinClusterSize(60)
+    ec.set_MaxClusterSize(6000)
     # Search the k-d tree for clusters
     ec.set_SearchMethod(tree)
     # Extract indices for each of the discovered clusters
@@ -207,53 +190,94 @@ def pcl_callback(pcl_msg):
         do.label = label
         do.cloud = ros_cluster
         detected_objects.append(do)       
+    
 
     # Suggested location for where to invoke your pr2_mover() function within pcl_callback()
     # Could add some logic to determine whether or not your object detections are robust
     # before calling pr2_mover()
-    #try:
-    #    pr2_mover(detected_objects_list)
-    #except rospy.ROSInterruptException:
-    #    pass
+    try:
+        pr2_mover(detected_objects)
+    except rospy.ROSInterruptException:
+        pass
 
 # function to load parameters and request PickPlace service
 def pr2_mover(object_list):
 
     # TODO: Initialize variables
-    
+    test_scene_num = Int32()
+    arm_name = String()
+    object_name = String()
+    pick_pose = Pose()
+    place_pose = Pose()
+    dict_list = []
+    labels = []
+    centroids = []
     # TODO: Get/Read parameters
 
-    # TODO: Parse parameters into individual variables
-
     # TODO: Rotate PR2 in place to capture side tables for the collision map
+    # TODO: Parse parameters into individual variables
+    object_list_param = rospy.get_param('/object_list')
 
-    # TODO: Loop through the pick list
 
-        # TODO: Get the PointCloud for a given object and obtain it's centroid
+    for object in object_list:
+        labels.append(object.label)
 
+        points_arr = ros_to_pcl(object.cloud).to_array()
+
+        pick_from = np.mean(points_arr, axis=0)[:3]
+        pick_pose.position.x = np.float(pick_from[0])
+        pick_pose.position.y = np.float(pick_from[1])
+        pick_pose.position.z = np.float(pick_from[2])
+
+        test_scene_num.data = 3  
+        object_name.data = str(object.label)
+        
+        
+        which_arm = String()        
+        place_pose = Pose()
+
+        # TODO: Loop through the pick list
+        for i in range(len(object_list)):  
+             pick_object_name = object_list_param[i]['name']
+             object_group = object_list_param[i]['group']
+             # TODO: Get the PointCloud for a given object and obtain it's centroid
+             if pick_object_name == object.label:
+                 if object_group == 'green':
+                     arm_name.data ='right'
+                     place_pose.position.x = 0.
+                     place_pose.position.y = -0.71
+                     place_pose.position.z = 0.605
+                 else:
+                     arm_name.data ='left'
+                     place_pose.position.x = 0.
+                     place_pose.position.y = 0.71
+                     place_pose.position.z = 0.605
+                 break
         # TODO: Create 'place_pose' for the object
-
+        yaml_dict = make_yaml_dict(test_scene_num, arm_name, object_name, pick_pose, place_pose)
+        dict_list.append(yaml_dict)
         # TODO: Assign the arm to be used for pick_place
 
         # TODO: Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
 
         # Wait for 'pick_place_routine' service to come up
-        rospy.wait_for_service('pick_place_routine')
+        #rospy.wait_for_service('pick_place_routine')
 
-        try:
-            pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
+        #try:
+        #    pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
 
             # TODO: Insert your message variables to be sent as a service request
-            resp = pick_place_routine(TEST_SCENE_NUM, OBJECT_NAME, WHICH_ARM, PICK_POSE, PLACE_POSE)
-
-            print ("Response: ",resp.success)
-
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+#            resp = pick_place_routine(test_scene_num, object_name, arm_name, pick_pose, place_pose)
+#
+#            print ("Response: ",resp.success)
+#
+#        except rospy.ServiceException, e:
+#            print "Service call failed: %s"%e
 
     # TODO: Output your request parameters into output yaml file
-
-
+    yaml_name = 'output_'+str(test_scene_num.data)+'.yaml'
+    send_to_yaml(yaml_name, dict_list)
+    print(yaml_name + "has been saved.")
 
 if __name__ == '__main__':
 
